@@ -1,11 +1,6 @@
-#include <cctype>
-#include <cstdio>
-#include <cstdlib>
-#include <map>
-#include <memory>
-#include <string>
-#include <utility>
-#include <vector>
+#ifndef AST_H
+#define AST_H
+
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/IR/BasicBlock.h"
@@ -17,15 +12,28 @@
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Type.h"
 #include "llvm/IR/Verifier.h"
+#include <cctype>
+#include <cstdio>
+#include <cstdlib>
+#include <map>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+
+using namespace llvm;
 /// ExprAST - Base class for all expression nodes.
 class ExprAST {
 public:
-  virtual ~ExprAST() {};
+  virtual ~ExprAST(){};
+  // Top level codegen virtual function.
+  virtual llvm::Value *codegen() = 0;
 };
 
 /// NumberExprAST - Expression class for numeric literals like "1.0".
 class NumberExprAST : public ExprAST {
   double Val;
+  llvm::Value *codegen() override;
 
 public:
   NumberExprAST(double Val) : Val(Val) {}
@@ -34,7 +42,7 @@ public:
 /// VariableExprAST - Expression class for referencing a variable, like "a".
 class VariableExprAST : public ExprAST {
   std::string Name;
-
+  llvm::Value *codegen() override;
 public:
   VariableExprAST(const std::string &Name) : Name(Name) {}
 };
@@ -85,3 +93,5 @@ public:
               std::unique_ptr<ExprAST> Body)
       : Proto(std::move(Proto)), Body(std::move(Body)) {}
 };
+
+#endif

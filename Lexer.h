@@ -1,3 +1,6 @@
+#ifndef LEXER_H
+#define LEXER_H
+
 #include "AST.h"
 #include <ctype.h>
 #include <string>
@@ -68,3 +71,5 @@ public:
     }
   }
 };
+
+#endif

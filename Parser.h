@@ -1,3 +1,7 @@
+
+#ifndef PARSER_H
+#define PARSER_H
+
 #include "Lexer.h"
 #include <map>
 #include <memory>
@@ -33,3 +37,5 @@ public:
   void HandleTopLevelExpression();
   void parse(std::string Content);
 };
+
+#endif
