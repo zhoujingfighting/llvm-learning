@@ -187,7 +187,8 @@ std::unique_ptr<FunctionAST> Parser::ParseDefinition() {
 /// toplevelexpr ::= expression
 std::unique_ptr<FunctionAST> Parser::ParseTopLevelExpr() {
   if (auto E = ParseExpression()) {
-    // Make an anonymous proto.
+    // Make an anonymous proto
+    // Make_unique构建函数
     auto Proto = std::make_unique<PrototypeAST>("__anon_expr",
                                                 std::vector<std::string>());
     return std::make_unique<FunctionAST>(std::move(Proto), std::move(E));
