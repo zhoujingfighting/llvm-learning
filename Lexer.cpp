@@ -6,9 +6,8 @@ void Lexer::init(std::string Content) {
 }
 
 Token Lexer::lexToken() {
-
   char LastChar = ' ';
-
+  TokStart = CurPtr;
   // Skip any whiteSpace
   while (isspace(LastChar))
     // getchar is std function
@@ -21,11 +20,18 @@ Token Lexer::lexToken() {
 
       IdentifierStr += LastChar;
     }
-    CurPtr--;
+    if(CurPtr - TokStart >= 2)
+      CurPtr--;
     if (IdentifierStr == "def")
       return tok_def;
     if (IdentifierStr == "extern")
       return tok_extern;
+    if (IdentifierStr == "if")
+      return tok_if;
+    if (IdentifierStr == "then")
+      return tok_then;
+    if (IdentifierStr == "else")
+      return tok_else;
     return tok_identifier;
   }
 

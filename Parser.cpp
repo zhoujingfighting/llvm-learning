@@ -55,20 +55,20 @@ std::unique_ptr<ExprAST> Parser::ParseIdentifierExpr() {
 
   Lex.lex(); // eat identifier.
 
-  if (Lex.CurTok != '(') // Simple variable ref.
+  if (Lex.CurTok != tok_leftParen) // Simple variable ref.
     return std::make_unique<VariableExprAST>(IdName);
 
   // Call.
   Lex.lex(); // eat (
   std::vector<std::unique_ptr<ExprAST>> Args;
-  if (Lex.CurTok != ')') {
+  if (Lex.CurTok != tok_rightParen) {
     while (true) {
       if (auto Arg = ParseExpression())
         Args.push_back(std::move(Arg));
       else
         return nullptr;
 
-      if (Lex.CurTok == ')')
+      if (Lex.CurTok == Token::tok_rightParen)
         break;
 
       if (Lex.CurTok != ',')
@@ -95,6 +95,8 @@ std::unique_ptr<ExprAST> Parser::ParsePrimary() {
     return ParseIdentifierExpr();
   case tok_number:
     return ParseNumberExpr();
+  case tok_if:
+    return ParseIfExpr();
   case '(':
     return ParseParenExpr();
   }
@@ -201,6 +203,42 @@ std::unique_ptr<PrototypeAST> Parser::ParseExtern() {
   return ParsePrototype();
 }
 
+/// ifexpr ::= 'if' expression 'then' expression 'else' expression
+/// Entry point for parsing conditiaonal statement
+std::unique_ptr<IfExprAST> Parser::ParseIfExpr() {
+  // condition.
+  Lex.lex();
+  auto Cond = ParseExpression();
+  if (!Cond)
+    return nullptr;
+
+  if (Lex.CurTok != tok_then) {
+    std::cout << "expected then" << std::endl;
+    return nullptr;
+  }
+
+  Lex.lex();  // eat the then
+
+  auto Then = ParseExpression();
+  if (!Then)
+    return nullptr;
+
+  if (Lex.CurTok != tok_else) {
+    std::cout << "expected else" << std::endl;
+    return nullptr;
+  }
+
+  Lex.lex();
+
+  auto Else = ParseExpression();
+  if (!Else)
+    return nullptr;
+
+  return std::make_unique<IfExprAST>(std::move(Cond), std::move(Then),
+                                      std::move(Else));
+}
+
+
 // Driver to dive the parser goes on
 //===----------------------------------------------------------------------===//
 // Top-Level parsing
@@ -247,7 +285,6 @@ void Parser::HandleTopLevelExpression() {
 void Parser::parse(std::string Content) {
   Lex.init(Content);
   while (true) {
-    fprintf(stderr, "ready> ");
     switch (Lex.CurTok) {
     case tok_eof:
       return;

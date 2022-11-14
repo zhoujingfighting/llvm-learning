@@ -24,16 +24,16 @@
 using namespace llvm;
 /// ExprAST - Base class for all expression nodes.
 class ExprAST {
-// public:
-//   llvm::LLVMContext TheContext = std::make_unique<LLVMContext>();
-//   IRBuilder<> Builder(TheContext);
-//   std::unique_ptr<Module> TheModule = std::make_unique<Module>("my cool jit", *TheContext);
+  // public:
+  //   llvm::LLVMContext TheContext = std::make_unique<LLVMContext>();
+  //   IRBuilder<> Builder(TheContext);
+  //   std::unique_ptr<Module> TheModule = std::make_unique<Module>("my cool
+  //   jit", *TheContext);
 public:
   virtual ~ExprAST(){};
   // Top level codegen virtual function.
   virtual llvm::Value *codegen() = 0;
-  void initializeNodule() {
-  }
+  void initializeNodule() {}
 };
 
 /// NumberExprAST - Expression class for numeric literals like "1.0".
@@ -49,6 +49,7 @@ public:
 class VariableExprAST : public ExprAST {
   std::string Name;
   llvm::Value *codegen() override;
+
 public:
   VariableExprAST(const std::string &Name) : Name(Name) {}
 };
@@ -58,6 +59,7 @@ class BinaryExprAST : public ExprAST {
   char Op;
   std::unique_ptr<ExprAST> LHS, RHS;
   llvm::Value *codegen() override;
+
 public:
   BinaryExprAST(char op, std::unique_ptr<ExprAST> LHS,
                 std::unique_ptr<ExprAST> RHS)
@@ -69,6 +71,7 @@ class CallExprAST : public ExprAST {
   std::string Callee;
   std::vector<std::unique_ptr<ExprAST>> Args;
   llvm::Value *codegen() override;
+
 public:
   CallExprAST(const std::string &Callee,
               std::vector<std::unique_ptr<ExprAST>> Args)
@@ -100,6 +103,16 @@ public:
               std::unique_ptr<ExprAST> Body)
       : Proto(std::move(Proto)), Body(std::move(Body)) {}
   llvm::Function *codegen();
+};
+
+class IfExprAST : public ExprAST {
+  std::unique_ptr<ExprAST> Cond, Then,
+      Else; // Build source AST tree for all these conditional statements
+public:
+  IfExprAST(std::unique_ptr<ExprAST> Cond, std::unique_ptr<ExprAST> Then,
+            std::unique_ptr<ExprAST> Else)
+      : Cond(std::move(Cond)), Then(std::move(Then)), Else(std::move(Else)) {}
+  Value *codegen() override;
 };
 
 #endif

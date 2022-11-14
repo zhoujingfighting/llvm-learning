@@ -19,8 +19,12 @@ enum Token {
   tok_leftParen = -6,
   tok_rightParen = -7,
 
+  tok_if = -8,
+  tok_then = -9,
+  tok_else = -10,
+
   // unkown token
-  tok_unknown = -8
+  tok_unknown = -11
 };
 
 class Lexer {
@@ -39,6 +43,8 @@ public:
 
   Token CurTok;
 
+  char CurChar;
+
 public:
 
   Token lexToken();
@@ -47,7 +53,7 @@ public:
   }
   void init(std::string Content);
   char getNextChar() {
-    char CurChar = *CurPtr++;
+    CurChar = *CurPtr++;
     // cout << CurChar << int(CurChar) << endl;
     switch (CurChar) {
     default:

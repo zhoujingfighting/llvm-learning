@@ -10,7 +10,7 @@ int main() {
 
   Parser parser;
   // Run the main "interpreter loop" now.
-  std::string test = "extern cos(x)";
+  std::string test = "extern foo();extern bar();def baz(x) if x then foo() else bar()";
   parser.parse(test);
 
   return 0;
