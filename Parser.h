@@ -9,9 +9,6 @@
 class Parser {
 public:
   Lexer Lex;
-  Token CurTok;
-  int getNextToken() { return CurTok = Lex.lex(); }
-
 public:
   Parser(/* args */){};
   ~Parser(){};

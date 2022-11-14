@@ -5,7 +5,7 @@ void Lexer::init(std::string Content) {
   CurPtr = &*CurBuf.cbegin();
 }
 
-Token Lexer::lex() {
+Token Lexer::lexToken() {
 
   char LastChar = ' ';
 
@@ -16,7 +16,6 @@ Token Lexer::lex() {
 
   // Judge string identifier
   if (isalpha(LastChar)) { // identifier: [a-zA-Z][a-zA-Z0-9]*
-    std::cout << LastChar << std::endl;
     IdentifierStr = LastChar;
     while (isalnum((LastChar = getNextChar()))) {
 

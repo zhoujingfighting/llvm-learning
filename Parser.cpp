@@ -6,11 +6,11 @@ std::map<char, int> BinopPrecedence;
 
 /// lexPrecedence - Get the precedence of the pending binary operator token.
 int Parser::lexPrecedence() {
-  if (!isascii(CurTok))
+  if (!isascii(Lex.CurTok))
     return -1;
 
   // Make sure it's a declared binop.
-  int TokPrec = BinopPrecedence[CurTok];
+  int TokPrec = BinopPrecedence[Lex.CurTok];
   if (TokPrec <= 0)
     return -1;
   return TokPrec;
@@ -28,22 +28,22 @@ std::unique_ptr<PrototypeAST> LogErrorP(const char *Str) {
 }
 
 /// numberexpr ::= number
- std::unique_ptr<ExprAST> Parser::ParseNumberExpr() {
+std::unique_ptr<ExprAST> Parser::ParseNumberExpr() {
   auto Result = std::make_unique<NumberExprAST>(Lex.NumVal);
-  getNextToken(); // consume the number
+  Lex.lex(); // consume the number
   return std::move(Result);
 }
 
 /// parenexpr ::= '(' expression ')'
 std::unique_ptr<ExprAST> Parser::ParseParenExpr() {
-  getNextToken(); // eat (.
+  Lex.lex(); // eat (.
   auto V = ParseExpression();
   if (!V)
     return nullptr;
 
-  if (CurTok != ')')
+  if (Lex.CurTok != ')')
     return LogError("expected ')'");
-  getNextToken(); // eat ).
+  Lex.lex(); // eat ).
   return V;
 }
 
@@ -53,32 +53,32 @@ std::unique_ptr<ExprAST> Parser::ParseParenExpr() {
 std::unique_ptr<ExprAST> Parser::ParseIdentifierExpr() {
   std::string IdName = Lex.IdentifierStr;
 
-  getNextToken(); // eat identifier.
+  Lex.lex(); // eat identifier.
 
-  if (CurTok != '(') // Simple variable ref.
+  if (Lex.CurTok != '(') // Simple variable ref.
     return std::make_unique<VariableExprAST>(IdName);
 
   // Call.
-  getNextToken(); // eat (
+  Lex.lex(); // eat (
   std::vector<std::unique_ptr<ExprAST>> Args;
-  if (CurTok != ')') {
+  if (Lex.CurTok != ')') {
     while (true) {
       if (auto Arg = ParseExpression())
         Args.push_back(std::move(Arg));
       else
         return nullptr;
 
-      if (CurTok == ')')
+      if (Lex.CurTok == ')')
         break;
 
-      if (CurTok != ',')
+      if (Lex.CurTok != ',')
         return LogError("Expected ')' or ',' in argument list");
-      getNextToken();
+      Lex.lex();
     }
   }
 
   // Eat the ')'.
-  getNextToken();
+  Lex.lex();
 
   return std::make_unique<CallExprAST>(IdName, std::move(Args));
 }
@@ -88,7 +88,7 @@ std::unique_ptr<ExprAST> Parser::ParseIdentifierExpr() {
 ///   ::= numberexpr
 ///   ::= parenexpr
 std::unique_ptr<ExprAST> Parser::ParsePrimary() {
-  switch (CurTok) {
+  switch (Lex.CurTok) {
   default:
     return LogError("unknown token when expecting an expression");
   case tok_identifier:
@@ -103,7 +103,7 @@ std::unique_ptr<ExprAST> Parser::ParsePrimary() {
 /// binoprhs
 ///   ::= ('+' primary)*
 std::unique_ptr<ExprAST> Parser::ParseBinOpRHS(int ExprPrec,
-                                              std::unique_ptr<ExprAST> LHS) {
+                                               std::unique_ptr<ExprAST> LHS) {
   // If this is a binop, find its precedence.
   while (true) {
     int TokPrec = lexPrecedence();
@@ -114,8 +114,8 @@ std::unique_ptr<ExprAST> Parser::ParseBinOpRHS(int ExprPrec,
       return LHS;
 
     // Okay, we know this is a binop.
-    int BinOp = CurTok;
-    getNextToken(); // eat binop
+    int BinOp = Lex.CurTok;
+    Lex.lex(); // eat binop
 
     // Parse the primary expression after the binary operator.
     auto RHS = ParsePrimary();
@@ -151,30 +151,29 @@ std::unique_ptr<ExprAST> Parser::ParseExpression() {
 /// prototype
 ///   ::= id '(' id* ')'
 std::unique_ptr<PrototypeAST> Parser::ParsePrototype() {
-  if (CurTok != tok_identifier)
+  if (Lex.CurTok != tok_identifier)
     return LogErrorP("Expected function name in prototype");
 
   std::string FnName = Lex.IdentifierStr;
-  getNextToken();
+  Lex.lex();
 
-  if (CurTok != tok_leftParen)
+  if (Lex.CurTok != tok_leftParen)
     return LogErrorP("Expected '(' in prototype");
-
   std::vector<std::string> ArgNames;
-  while (getNextToken() == tok_identifier)
+  while (Lex.lex() == tok_identifier) {
     ArgNames.push_back(Lex.IdentifierStr);
-  if (CurTok != tok_rightParen)
+  }
+
+  if (Lex.CurTok != tok_rightParen)
     return LogErrorP("Expected ')' in prototype");
 
-  // success.
-  getNextToken(); // eat ')'.
-
+  Lex.lex();
   return std::make_unique<PrototypeAST>(FnName, std::move(ArgNames));
 }
 
 /// definition ::= 'def' prototype expression
 std::unique_ptr<FunctionAST> Parser::ParseDefinition() {
-  getNextToken(); // eat def.
+  Lex.lex(); // eat def.
   auto Proto = ParsePrototype();
   if (!Proto)
     return nullptr;
@@ -198,10 +197,9 @@ std::unique_ptr<FunctionAST> Parser::ParseTopLevelExpr() {
 
 /// external ::= 'extern' prototype
 std::unique_ptr<PrototypeAST> Parser::ParseExtern() {
-  getNextToken(); // eat extern.
+  Lex.lex(); // eat extern.
   return ParsePrototype();
 }
-
 
 // Driver to dive the parser goes on
 //===----------------------------------------------------------------------===//
@@ -209,30 +207,39 @@ std::unique_ptr<PrototypeAST> Parser::ParseExtern() {
 //===----------------------------------------------------------------------===//
 
 void Parser::HandleDefinition() {
-  if (ParseDefinition()) {
+  if (auto FnAST = ParseDefinition()) {
     fprintf(stderr, "Parsed a function definition.\n");
+    if (auto *FnIR = FnAST->codegen()) {
+      FnIR->print(errs());
+    }
   } else {
     // Skip token for error recovery.
-    getNextToken();
+    Lex.lex();
   }
 }
 
 void Parser::HandleExtern() {
-  if (ParseExtern()) {
+  if (auto ProtoAST = ParseExtern()) {
     fprintf(stderr, "Parsed an extern\n");
+    if (auto *FnIR = ProtoAST->codegen()) {
+      FnIR->print(errs());
+    }
   } else {
     // Skip token for error recovery.
-    getNextToken();
+    Lex.lex();
   }
 }
 
 void Parser::HandleTopLevelExpression() {
   // Evaluate a top-level expression into an anonymous function.
-  if (ParseTopLevelExpr()) {
+  if (auto FnASt = ParseTopLevelExpr()) {
     fprintf(stderr, "Parsed a top-level expr\n");
+    if (auto FnIR = FnASt->codegen()) {
+      FnIR->print(errs());
+    }
   } else {
     // Skip token for error recovery.
-    getNextToken();
+    Lex.lex();
   }
 }
 
@@ -241,11 +248,11 @@ void Parser::parse(std::string Content) {
   Lex.init(Content);
   while (true) {
     fprintf(stderr, "ready> ");
-    switch (CurTok) {
+    switch (Lex.CurTok) {
     case tok_eof:
       return;
     case ';': // ignore top-level semicolons.
-      getNextToken();
+      Lex.lex();
       break;
     case tok_def:
       HandleDefinition();

@@ -37,8 +37,14 @@ public:
   /// Information about the current token
   const char *TokStart = nullptr;
 
+  Token CurTok;
+
 public:
-  Token lex();
+
+  Token lexToken();
+  Token lex() {
+    return CurTok = lexToken();
+  }
   void init(std::string Content);
   char getNextChar() {
     char CurChar = *CurPtr++;

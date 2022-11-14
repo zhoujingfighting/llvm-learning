@@ -24,10 +24,16 @@
 using namespace llvm;
 /// ExprAST - Base class for all expression nodes.
 class ExprAST {
+// public:
+//   llvm::LLVMContext TheContext = std::make_unique<LLVMContext>();
+//   IRBuilder<> Builder(TheContext);
+//   std::unique_ptr<Module> TheModule = std::make_unique<Module>("my cool jit", *TheContext);
 public:
   virtual ~ExprAST(){};
   // Top level codegen virtual function.
   virtual llvm::Value *codegen() = 0;
+  void initializeNodule() {
+  }
 };
 
 /// NumberExprAST - Expression class for numeric literals like "1.0".
